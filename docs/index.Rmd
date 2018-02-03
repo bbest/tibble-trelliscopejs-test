@@ -1,0 +1,61 @@
+---
+title: "Tibbles n Trelliscopes"
+author: "Ben Best"
+date: "February 2, 2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+- [trelliscopejs](https://hafen.github.io/trelliscopejs/)
+
+## gather & facet_trelliscope
+
+```{r gather & facet_trelliscope}
+library(tidyverse)     # install.package("tidyverse")
+library(AmesHousing)   # install.package("AmesHousing")
+library(trelliscopejs) # install.package("hafen/trelliscopejs")
+
+make_ames() %>%
+  select_if(function(x) is.numeric(x) & !is.factor(x)) %>%
+  select(1:12, Sale_Price) %>%
+  gather(key="var", value="val", -Sale_Price) %>%
+  ggplot(aes(val, Sale_Price)) + 
+    geom_point() + 
+    geom_smooth(method="lm"   , col="red") +
+    geom_smooth(method="loess", col="blue") +
+  facet_trelliscope(
+    ~ var, ncol = 2, nrow = 2, 
+    scales = c("free", "same"), self_contained=T)
+```
+
+## nest & trelliscope
+
+TODO...
+ 
+```{r nest & trelliscope, eval=F}
+tbl_ames <- AmesHousing::make_ames()
+
+plot_val_price <- function(d){
+  ggplot(d, aes(val, Sale_Price)) +
+    geom_point() +
+    geom_smooth(method="lm"   , col="red") +
+    geom_smooth(method="loess", col="blue")
+}
+
+tbl_ames_var <- tbl_ames %>%
+  # limit comparison to columns with data that is truly numeric (and not a factor)
+  select_if(function(x) is.numeric(x) & !is.factor(x)) %>%
+  gather(key="var", value="val", -Sale_Price) %>%
+  group_by(var) %>%
+  nest() %>%
+  mutate(
+    mdl_lm = map(data, ~ lm(Sale_Price ~ val, data = .x)),
+    plot   = map(data, plot_val_price),
+    plot   = map2(plot, var, function(x, y) x + xlab(y)))
+# TODO: map_panel(), trelliscope()...
+```
